@@ -8,11 +8,41 @@ namespace RaffleDraw
 {
     class Program
     {
+        static void Help()
+        {
+
+        }
+
         static void Main(string[] args)
         {
             string itemsFilename = null;
             string customersFilename = null;
+            string outFilename = null;
             int numberOfDraws = 0;
+            StreamWriter output = null;
+
+            if (args.Length == 0)
+            {
+                Console.WriteLine("Usage: <-i filename> <-c filename> <-d count> [-o filename] [-h]");
+                Console.WriteLine();
+                Console.WriteLine("-i filename | --items filename");
+                Console.WriteLine("  The path to the items CSV file.");
+                Console.WriteLine();
+                Console.WriteLine("-c filename | --customers filename");
+                Console.WriteLine("  The path to the customers CSV file.");
+                Console.WriteLine();
+                Console.WriteLine("-d count | --draws count");
+                Console.WriteLine("  The number of winners to be drawn.");
+                Console.WriteLine();
+                Console.WriteLine("-o filename | --output filename");
+                Console.WriteLine("  The path to the file the output will be written to.");
+                Console.WriteLine();
+                Console.WriteLine("-h | --help | -?");
+                Console.WriteLine("  This help information.");
+                Console.WriteLine();
+                Help();
+                Environment.Exit(0);
+            }
 
             // Read parameters from command line
             for (int i = 0; i < args.Length; ++i)
@@ -42,6 +72,19 @@ namespace RaffleDraw
                                 Environment.Exit(1);
                             }
                         }
+                        break;
+
+                    case "-o":
+                    case "--output":
+                        ++i;
+                        outFilename = i < args.Length ? args[i] : null;
+                        break;
+
+                    case "-h":
+                    case "--help":
+                    case "-?":
+                        Help();
+                        Environment.Exit(0);
                         break;
 
                     default:
@@ -123,16 +166,39 @@ namespace RaffleDraw
             // Select the random winners
             var winners = tickets.PickRandom(numberOfDraws);
 
+            // Open output file if requested
+            if (!string.IsNullOrWhiteSpace(outFilename))
+            {
+                try
+                {
+                    output = new StreamWriter(File.OpenWrite(outFilename));
+                }
+                catch (Exception e)
+                {
+                    Console.Error.WriteLine("Error opening output file.");
+                    Console.Error.WriteLine($"{e.GetType().FullName} {e.Message}");
+                    Environment.Exit(1);
+                }
+            }
+
             // List results
-            Console.WriteLine($"From {tickets.Count} tickets purchased, selecting {numberOfDraws} winners...");
+            Output(output, $"From {tickets.Count} tickets purchased, selecting {numberOfDraws} winners...");
             for (int w = 0; w < winners.Count; ++w)
             {
                 var ticket = winners[w];
                 var winner = customers.Where(c => c.ReferenceID == ticket.CustomerReferenceID).FirstOrDefault();
-                Console.WriteLine();
-                Console.WriteLine($"{w + 1}. {winner.FirstName} {winner.Surname} {winner.PhoneNumber} {winner.EmailAddress}");
-                Console.WriteLine($"{ticket.DetailsUrl}");
+                Output(output, string.Empty);
+                Output(output, $"{w + 1}. {winner.FirstName} {winner.Surname} {winner.PhoneNumber} {winner.EmailAddress}");
+                Output(output, $"{ticket.DetailsUrl}");
             }
+
+            output?.Dispose();
+        }
+
+        static void Output(StreamWriter writer, string line)
+        {
+            Console.WriteLine(line);
+            writer?.WriteLine(line);
         }
     }
 }
