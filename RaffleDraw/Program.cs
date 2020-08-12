@@ -1,6 +1,7 @@
 ﻿using Konaju.File.Csv;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
@@ -200,7 +201,13 @@ namespace RaffleDraw
                 Output(output, $"    https://squareup.com/dashboard/orders/overview/{ticket.TransactionID}");
             }
 
-            output?.Dispose();
+            if (output != null)
+            {
+                output.Dispose();
+
+                var psi = new ProcessStartInfo(outFilename) { UseShellExecute = true };
+                Process.Start(psi);
+            }
         }
 
         static void Output(StreamWriter writer, string line)
