@@ -186,10 +186,18 @@ namespace RaffleDraw
             for (int w = 0; w < winners.Count; ++w)
             {
                 var ticket = winners[w];
-                var winner = customers.Where(c => c.ReferenceID == ticket.CustomerReferenceID).FirstOrDefault();
+                var winner = string.IsNullOrWhiteSpace(ticket.CustomerReferenceID) ? null : customers.Where(c => c.ReferenceID == ticket.CustomerReferenceID).FirstOrDefault();
                 Output(output, string.Empty);
-                Output(output, $"{w + 1}. {winner.FirstName} {winner.Surname} {winner.PhoneNumber} {winner.EmailAddress}");
-                Output(output, $"{ticket.DetailsUrl}");
+                if (winner != null)
+                {
+                    Output(output, $"{w + 1}. {winner.FirstName} {winner.Surname} {winner.PhoneNumber} {winner.EmailAddress}");
+                }
+                else
+                {
+                    Output(output, $"{w + 1}. No customer reference ID in item sale. Check transaction ID link below");
+                }
+                //Output(output, $"{ticket.DetailsUrl}");
+                Output(output, $"    https://squareup.com/dashboard/orders/overview/{ticket.TransactionID}");
             }
 
             output?.Dispose();

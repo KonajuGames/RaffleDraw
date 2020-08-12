@@ -2,7 +2,7 @@
   "profiles": {
     "RaffleDraw": {
       "commandName": "Project",
-      "commandLineArgs": "-i \"C:\\Users\\Steve\\Downloads\\TGSSPC\\items-2020-07-15-2020-07-18.csv\" -c \"C:\\Users\\Steve\\Downloads\\TGSSPC\\export-20200717-062820.csv\" -d 17"
+      "commandLineArgs": "-i \"D:\\RaffleDraw\\items-2020-07-15-2020-08-13.csv\" -c \"D:\\RaffleDraw\\export-20200812-053445.csv\" -d 17 -o D:\\RaffleDraw\\winners.txt"
     }
   }
 }

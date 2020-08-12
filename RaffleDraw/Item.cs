@@ -24,5 +24,8 @@ namespace RaffleDraw
 
         [CsvColumn("Details")]
         public string DetailsUrl;
+
+        [CsvColumn("Transaction ID")]
+        public string TransactionID;
     }
 }
