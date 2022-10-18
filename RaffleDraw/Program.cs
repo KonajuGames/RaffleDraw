@@ -20,11 +20,12 @@ namespace RaffleDraw
             string customersFilename = null;
             string outFilename = null;
             int numberOfDraws = 0;
+            string filter = null;
             StreamWriter output = null;
 
             if (args.Length == 0)
             {
-                Console.WriteLine("Usage: <-i filename> <-c filename> <-d count> [-o filename] [-h]");
+                Console.WriteLine("Usage: <-i filename> [-c filename] <-d count> [-o filename] [-h]");
                 Console.WriteLine();
                 Console.WriteLine("-i filename | --items filename");
                 Console.WriteLine("  The path to the items CSV file.");
@@ -34,6 +35,9 @@ namespace RaffleDraw
                 Console.WriteLine();
                 Console.WriteLine("-d count | --draws count");
                 Console.WriteLine("  The number of winners to be drawn.");
+                Console.WriteLine();
+                Console.WriteLine("-f string | --filter string");
+                Console.WriteLine("  Filter to apply to the item name");
                 Console.WriteLine();
                 Console.WriteLine("-o filename | --output filename");
                 Console.WriteLine("  The path to the file the output will be written to.");
@@ -75,6 +79,12 @@ namespace RaffleDraw
                         }
                         break;
 
+                    case "-f":
+                    case "--filter":
+                        ++i;
+                        filter = i < args.Length ? args[i] : null;
+                        break;
+
                     case "-o":
                     case "--output":
                         ++i;
@@ -108,13 +118,7 @@ namespace RaffleDraw
                 Environment.Exit(1);
             }
 
-            if (string.IsNullOrWhiteSpace(customersFilename))
-            {
-                Console.Error.WriteLine("Missing customers filename");
-                Environment.Exit(1);
-            }
-
-            if (!File.Exists(customersFilename))
+            if (!string.IsNullOrWhiteSpace(customersFilename) && !File.Exists(customersFilename))
             {
                 Console.Error.WriteLine("Customers file not found");
                 Environment.Exit(1);
@@ -130,9 +134,13 @@ namespace RaffleDraw
             IList<Item> items = null;
             try
             {
-                using (var itemsFile = File.OpenRead(itemsFilename))
+                using (var itemsFile = new FileStream(itemsFilename, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
                     items = CsvReader.Read<Item>(itemsFile);
+                    if (!string.IsNullOrWhiteSpace(filter))
+                    {
+                        items = items.Where(i => i.ItemName.Contains(filter)).ToList();
+                    }
                 }
             }
             catch (Exception e)
@@ -143,18 +151,21 @@ namespace RaffleDraw
             }
 
             IList<Customer> customers = null;
-            try
+            if (!string.IsNullOrWhiteSpace(customersFilename))
             {
-                using (var customersFile = File.OpenRead(customersFilename))
+                try
                 {
-                    customers = CsvReader.Read<Customer>(customersFile);
+                    using (var customersFile = new FileStream(customersFilename, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        customers = CsvReader.Read<Customer>(customersFile);
+                    }
                 }
-            }
-            catch (Exception e)
-            {
-                Console.Error.WriteLine("Error reading customers file.");
-                Console.Error.WriteLine($"{e.GetType().FullName} {e.Message}");
-                Environment.Exit(1);
+                catch (Exception e)
+                {
+                    Console.Error.WriteLine("Error reading customers file.");
+                    Console.Error.WriteLine($"{e.GetType().FullName} {e.Message}");
+                    Environment.Exit(1);
+                }
             }
 
             // Remove items that have been refunded
@@ -162,7 +173,7 @@ namespace RaffleDraw
             var validItems = items.Where(i => !refundPaymentIDs.Contains(i.PaymentID));
 
             // Expand multiple ticket purchases
-            var tickets = validItems.SelectMany(i => Enumerable.Repeat(i, (int)i.Quantity)).ToList();
+            var tickets = validItems.SelectMany(i => Enumerable.Repeat(i, int.Parse(i.ItemName.Substring(i.ItemName.Length - 1, 1)) * (int)i.Quantity)).ToList();
 
             // Select the random winners
             var winners = tickets.PickRandom(numberOfDraws);
@@ -172,7 +183,7 @@ namespace RaffleDraw
             {
                 try
                 {
-                    output = new StreamWriter(File.OpenWrite(outFilename));
+                    output = new StreamWriter(new FileStream(outFilename, FileMode.Create, FileAccess.Write, FileShare.Write));
                 }
                 catch (Exception e)
                 {
@@ -187,15 +198,19 @@ namespace RaffleDraw
             for (int w = 0; w < winners.Count; ++w)
             {
                 var ticket = winners[w];
-                var winner = string.IsNullOrWhiteSpace(ticket.CustomerReferenceID) ? null : customers.Where(c => c.ReferenceID == ticket.CustomerReferenceID).FirstOrDefault();
                 Output(output, string.Empty);
-                if (winner != null)
+                Output(output, $"{w + 1}. {ticket.ModifiersApplied.Substring(11)}");
+                if (customers != null)
                 {
-                    Output(output, $"{w + 1}. {winner.FirstName} {winner.Surname} {winner.PhoneNumber} {winner.EmailAddress}");
-                }
-                else
-                {
-                    Output(output, $"{w + 1}. No customer reference ID in item sale. Check transaction ID link below");
+                    var winner = string.IsNullOrWhiteSpace(ticket.CustomerReferenceID) ? null : customers.Where(c => c.ReferenceID == ticket.CustomerReferenceID).FirstOrDefault();
+                    if (winner != null)
+                    {
+                        Output(output, $"    {winner.FirstName} {winner.Surname} {winner.PhoneNumber} {winner.EmailAddress}");
+                    }
+                    else
+                    {
+                        Output(output, $"    No customer reference ID in item sale. Check transaction ID link below");
+                    }
                 }
                 //Output(output, $"{ticket.DetailsUrl}");
                 Output(output, $"    https://squareup.com/dashboard/orders/overview/{ticket.TransactionID}");

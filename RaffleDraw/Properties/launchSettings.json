@@ -2,7 +2,7 @@
   "profiles": {
     "RaffleDraw": {
       "commandName": "Project",
-      "commandLineArgs": "-i \"D:\\RaffleDraw\\items-2020-07-15-2020-08-13.csv\" -c \"D:\\RaffleDraw\\export-20200812-053445.csv\" -d 17 -o D:\\RaffleDraw\\winners.txt"
+      "commandLineArgs": "-i \"C:\\Users\\Steve\\Downloads\\items-2022-10-07-2022-10-19.csv\" -f \"Spring Garden Party RAFFLE\" -d 8 -o D:\\winners.txt"
     }
   }
 }

@@ -7,11 +7,17 @@ namespace RaffleDraw
         [CsvColumn("Category")]
         public string Category;
 
+        [CsvColumn("Item")]
+        public string ItemName;
+
         [CsvColumn("Qty")]
         public double Quantity;
 
         [CsvColumn("SKU")]
         public string Sku;
+
+        [CsvColumn("Modifiers Applied")]
+        public string ModifiersApplied;
 
         [CsvColumn("Event Type")]
         public EventType EventType;
