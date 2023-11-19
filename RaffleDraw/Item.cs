@@ -10,6 +10,9 @@ namespace RaffleDraw
         [CsvColumn("Item")]
         public string ItemName;
 
+        [CsvColumn("Product Sales")]
+        public string ProductSales;
+
         [CsvColumn("Qty")]
         public double Quantity;
 
@@ -25,8 +28,11 @@ namespace RaffleDraw
         [CsvColumn("Payment ID")]
         public string PaymentID;
 
-        [CsvColumn("Customer Reference ID")]
-        public string CustomerReferenceID;
+        [CsvColumn("Customer ID")]
+        public string CustomerID;
+
+        [CsvColumn("Customer Name")]
+        public string CustomerName;
 
         [CsvColumn("Details")]
         public string DetailsUrl;

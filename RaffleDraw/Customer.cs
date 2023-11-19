@@ -18,5 +18,8 @@ namespace RaffleDraw
 
         [CsvColumn("Phone Number")]
         public string PhoneNumber;
+
+        [CsvColumn("Square Customer ID")]
+        public string SquareCustomerID;
     }
 }

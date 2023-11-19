@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 
@@ -14,6 +15,13 @@ namespace RaffleDraw
 
         }
 
+        enum TicketMode
+        {
+            None,
+            SPG,
+            MSG
+        }
+
         static void Main(string[] args)
         {
             string itemsFilename = null;
@@ -22,6 +30,7 @@ namespace RaffleDraw
             int numberOfDraws = 0;
             string filter = null;
             StreamWriter output = null;
+            TicketMode ticketMode = TicketMode.None;
 
             if (args.Length == 0)
             {
@@ -38,6 +47,9 @@ namespace RaffleDraw
                 Console.WriteLine();
                 Console.WriteLine("-f string | --filter string");
                 Console.WriteLine("  Filter to apply to the item name");
+                Console.WriteLine();
+                Console.WriteLine("-m mode | --mode mode");
+                Console.WriteLine("  The ticket mode. MSG or SPG");
                 Console.WriteLine();
                 Console.WriteLine("-o filename | --output filename");
                 Console.WriteLine("  The path to the file the output will be written to.");
@@ -89,6 +101,19 @@ namespace RaffleDraw
                     case "--output":
                         ++i;
                         outFilename = i < args.Length ? args[i] : null;
+                        break;
+
+                    case "-m":
+                    case "--mode":
+                        ++i;
+                        if (i < args.Length)
+                        {
+                            if (!Enum.TryParse(args[i], true, out ticketMode))
+                            {
+                                Console.Error.WriteLine("Invalid mode");
+                                Environment.Exit(1);
+                            }
+                        }
                         break;
 
                     case "-h":
@@ -172,8 +197,21 @@ namespace RaffleDraw
             var refundPaymentIDs = items.Where(i => i.EventType == EventType.Refund).Select(i => i.PaymentID);
             var validItems = items.Where(i => !refundPaymentIDs.Contains(i.PaymentID));
 
-            // Expand multiple ticket purchases
-            var tickets = validItems.SelectMany(i => Enumerable.Repeat(i, int.Parse(i.ItemName.Substring(i.ItemName.Length - 1, 1)) * (int)i.Quantity)).ToList();
+            List<Item> tickets = new List<Item>();
+            switch (ticketMode)
+            {
+                case TicketMode.None:
+                    tickets = validItems.SelectMany(i => Enumerable.Repeat(i, (int)i.Quantity)).ToList();
+                    break;
+                case TicketMode.SPG:
+                    // Expand multiple ticket purchases
+                    tickets = validItems.SelectMany(i => Enumerable.Repeat(i, int.Parse(i.ItemName.Substring(i.ItemName.Length - 1, 1)) * (int)i.Quantity)).ToList();
+                    break;
+                case TicketMode.MSG:
+                    // Ticket per dollar spent
+                    tickets = validItems.SelectMany(i => Enumerable.Repeat(i, (int)double.Parse(i.ProductSales, NumberStyles.AllowCurrencySymbol | NumberStyles.Currency))).ToList();
+                    break;
+            }
 
             // Select the random winners
             var winners = tickets.PickRandom(numberOfDraws);
@@ -199,10 +237,10 @@ namespace RaffleDraw
             {
                 var ticket = winners[w];
                 Output(output, string.Empty);
-                Output(output, $"{w + 1}. {ticket.ModifiersApplied.Substring(11)}");
+                Output(output, $"{w + 1}. {ticket.CustomerName}");// {ticket.ModifiersApplied.Substring(11)}");
                 if (customers != null)
                 {
-                    var winner = string.IsNullOrWhiteSpace(ticket.CustomerReferenceID) ? null : customers.Where(c => c.ReferenceID == ticket.CustomerReferenceID).FirstOrDefault();
+                    var winner = string.IsNullOrWhiteSpace(ticket.CustomerID) ? null : customers.Where(c => c.SquareCustomerID == ticket.CustomerID).FirstOrDefault();
                     if (winner != null)
                     {
                         Output(output, $"    {winner.FirstName} {winner.Surname} {winner.PhoneNumber} {winner.EmailAddress}");
